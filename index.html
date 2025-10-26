@@ -23,14 +23,13 @@
             justify-content: center;
             padding: 20px;
             overflow-x: hidden;
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .container {
             width: 100%;
             max-width: 600px;
             text-align: center;
-            padding: 20px;
         }
         
         h1 {
@@ -44,7 +43,7 @@
         .gif-container {
             width: 100%;
             max-width: 500px;
-            margin: 0 auto 2rem;
+            margin: 0 auto 1rem;
             border: 3px solid #8B0000;
             border-radius: 15px;
             overflow: hidden;
@@ -56,72 +55,57 @@
             width: 100%;
             height: auto;
             display: block;
-            object-fit: contain;
-            max-height: 60vh;
         }
         
-        .click-hint {
+        .sound-button {
             background: #8B0000;
             color: white;
-            padding: 15px;
-            font-size: 1.3rem;
+            padding: 20px;
+            font-size: 1.5rem;
             font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
             border: none;
+            border-radius: 10px;
             width: 100%;
-            -webkit-tap-highlight-color: transparent;
+            max-width: 500px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .click-hint:hover {
-            background: #a00;
+        .sound-button:active {
+            background: #600;
+            transform: scale(0.95);
         }
         
-        .click-hint:active {
-            background: #700;
-            transform: scale(0.98);
-        }
-        
-        .audio-activated {
-            display: none;
-            color: #0f0;
-            margin-bottom: 1rem;
+        .tap-message {
+            color: #888;
+            margin-top: 10px;
             font-size: 0.9rem;
         }
-        
-        /* Медиа-запросы для мобильных устройств */
+
         @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            
             h1 {
                 font-size: 2rem;
             }
             
-            .gif-container {
-                max-width: 100%;
-                border-width: 2px;
-            }
-            
-            .gif-container img {
-                max-height: 50vh;
-            }
-            
-            .click-hint {
+            .sound-button {
+                font-size: 1.3rem;
                 padding: 18px;
-                font-size: 1.2rem;
             }
         }
         
         @media (max-width: 480px) {
             h1 {
                 font-size: 1.8rem;
+                margin-bottom: 1.5rem;
             }
             
-            .click-hint {
-                font-size: 1.1rem;
+            .sound-button {
+                font-size: 1.2rem;
                 padding: 16px;
+            }
+            
+            .tap-message {
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -129,127 +113,104 @@
 <body>
     <div class="container">
         <h1>Wednesday</h1>
-        <div class="audio-activated" id="audioActivated">🔊 Звук активирован</div>
         
         <div class="gif-container">
-            <img id="prankImage" src="" alt="Анимированная GIF">
-            <button class="click-hint" id="soundButton">▶ НАЖМИ ДЛЯ ЗВУКА</button>
+            <img id="prankImage" src="" alt="Wednesday GIF">
         </div>
+        
+        <button class="sound-button" id="soundButton">
+            🔈 НАЖМИ ДЛЯ ЗВУКА
+        </button>
+        
+        <div class="tap-message">Коснись кнопки для звука</div>
     </div>
 
-    <audio id="prankSound" preload="auto" playsinline></audio>
+    <audio id="prankSound" preload="auto" playsinline webkit-playsinline></audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const prankImage = document.getElementById('prankImage');
             const prankSound = document.getElementById('prankSound');
             const soundButton = document.getElementById('soundButton');
-            const audioActivated = document.getElementById('audioActivated');
             
-            let audioUnlocked = false;
+            let audioEnabled = false;
             
-            // Функция для разблокировки аудио
-            function unlockAudio() {
-                if (audioUnlocked) return;
-                
-                // Создаем короткий беззвучный звук для разблокировки
-                const context = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = context.createOscillator();
-                const gainNode = context.createGain();
-                
-                gainNode.gain.value = 0; // Беззвучно
-                oscillator.connect(gainNode);
-                gainNode.connect(context.destination);
-                
-                oscillator.start();
-                oscillator.stop(context.currentTime + 0.001);
-                
-                // Восстанавливаем контекст если он был приостановлен
-                if (context.state === 'suspended') {
-                    context.resume();
+            // Загрузка файлов
+            function loadFiles() {
+                // Определяем базовый URL
+                let baseUrl = './files/';
+                if (window.location.href.includes('github.io')) {
+                    const path = window.location.href.split('/').slice(0, -1).join('/');
+                    baseUrl = path + '/files/';
                 }
-                
-                audioUnlocked = true;
-                audioActivated.style.display = 'block';
-                console.log('Аудио разблокировано');
-            }
-            
-            // Автоматическое определение URL репозитория
-            function getRepoBaseUrl() {
-                const currentUrl = window.location.href;
-                
-                if (currentUrl.includes('github.io')) {
-                    const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
-                    return baseUrl + '/files/';
-                } else {
-                    return './files/';
-                }
-            }
-            
-            // Загрузка контента
-            function loadContent() {
-                const repoBaseUrl = getRepoBaseUrl();
-                const gifUrl = repoBaseUrl + 'prank.gif';
-                const soundUrl = repoBaseUrl + 'sound.mp3';
                 
                 // Загружаем GIF
-                prankImage.onload = function() {
-                    console.log('GIF загружена успешно');
-                };
-                
-                prankImage.onerror = function() {
-                    console.log('Ошибка загрузки GIF');
-                };
-                
-                prankImage.src = gifUrl + '?t=' + Date.now();
+                prankImage.src = baseUrl + 'prank.gif?' + Date.now();
                 
                 // Загружаем звук
-                prankSound.oncanplaythrough = function() {
-                    console.log('Звук загружен успешно');
-                };
+                prankSound.src = baseUrl + 'sound.mp3?' + Date.now();
                 
-                prankSound.onerror = function() {
-                    console.log('Звук не найден');
-                };
-                
-                prankSound.src = soundUrl + '?t=' + Date.now();
+                console.log('Файлы загружены');
             }
             
-            // Клик по кнопке
-            function handleClick() {
-                // Разблокируем аудио при первом клике
-                unlockAudio();
+            // Включение звука
+            function enableAudio() {
+                if (audioEnabled) return;
                 
-                if (prankSound.src && prankSound.src !== '') {
-                    // Сбрасываем и воспроизводим
+                // Простая попытка воспроизвести пустой звук
+                const tempAudio = new Audio();
+                tempAudio.volume = 0.01;
+                
+                tempAudio.play().then(() => {
+                    audioEnabled = true;
+                    soundButton.innerHTML = '🔊 НАЖМИ ДЛЯ ЗВУКА';
+                    console.log('Звук активирован');
+                }).catch(e => {
+                    console.log('Требуется взаимодействие');
+                });
+                
+                tempAudio.remove();
+            }
+            
+            // Воспроизведение звука
+            function playSound() {
+                if (!audioEnabled) {
+                    enableAudio();
+                    return;
+                }
+                
+                if (prankSound.src) {
                     prankSound.currentTime = 0;
+                    prankSound.volume = 1.0;
                     
-                    // Небольшая задержка для мобильных устройств
-                    setTimeout(() => {
-                        prankSound.play().catch(e => {
-                            console.log('Ошибка воспроизведения:', e);
-                            // Показываем сообщение об ошибке
-                            soundButton.textContent = '❌ Нажмите еще раз';
-                            setTimeout(() => {
-                                soundButton.textContent = '▶ НАЖМИ ДЛЯ ЗВУКА';
-                            }, 2000);
-                        });
-                    }, 100);
+                    prankSound.play().catch(e => {
+                        console.log('Ошибка воспроизведения:', e);
+                        soundButton.innerHTML = '❌ Нажми еще раз';
+                        setTimeout(() => {
+                            soundButton.innerHTML = '🔊 НАЖМИ ДЛЯ ЗВУКА';
+                        }, 2000);
+                    });
                 }
             }
             
             // Обработчики событий
-            soundButton.addEventListener('click', handleClick);
-            soundButton.addEventListener('touchstart', handleClick, { passive: true });
+            soundButton.addEventListener('click', playSound);
+            soundButton.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                playSound();
+            }, { passive: false });
             
-            // Разблокировка аудио при любом касании страницы
-            document.body.addEventListener('touchstart', unlockAudio, { passive: true });
-            document.body.addEventListener('click', unlockAudio);
+            // Активируем звук при любом касании страницы
+            document.addEventListener('click', enableAudio);
+            document.addEventListener('touchstart', enableAudio, { passive: true });
             
-            // Загружаем контент при старте
-            loadContent();
+            // Загружаем файлы
+            loadFiles();
             
-            console.log('Wednesday prank page loaded');
+            // Показываем сообщение для мобильных
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                document.querySelector('.tap-message').style.display = 'block';
+            }
         });
     </script>
 </body>
