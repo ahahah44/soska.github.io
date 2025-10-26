@@ -22,13 +22,11 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            overflow-x: hidden;
-            -webkit-tap-highlight-color: transparent;
         }
         
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             text-align: center;
         }
         
@@ -37,76 +35,26 @@
             margin-bottom: 2rem;
             color: #FF0000;
             text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
         }
         
         .gif-container {
             width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
             border: 3px solid #8B0000;
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
-            background: #111;
             cursor: pointer;
-            position: relative;
+            margin-bottom: 1rem;
         }
         
         .gif-container img {
             width: 100%;
             height: auto;
             display: block;
-            transition: transform 0.2s;
         }
         
-        .gif-container:active img {
-            transform: scale(0.98);
-        }
-        
-        .click-hint {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(139, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            font-size: 1.3rem;
-            font-weight: bold;
-        }
-        
-        .tap-message {
-            color: #888;
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .click-hint {
-                font-size: 1.2rem;
-                padding: 12px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8rem;
-                margin-bottom: 1.5rem;
-            }
-            
-            .click-hint {
-                font-size: 1.1rem;
-                padding: 10px;
-            }
-            
-            .tap-message {
-                font-size: 0.8rem;
-            }
+        .hint {
+            color: #ccc;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -114,107 +62,80 @@
     <div class="container">
         <h1>Wednesday</h1>
         
-        <div class="gif-container" id="gifContainer">
+        <div class="gif-container" onclick="playSound()">
             <img id="prankImage" src="" alt="Wednesday GIF">
-            <div class="click-hint">▶ НАЖМИ ДЛЯ ЗВУКА</div>
         </div>
         
-        <div class="tap-message">Коснись GIF для звука</div>
+        <div class="hint">Нажми на GIF для звука</div>
     </div>
 
-    <audio id="prankSound" preload="auto" playsinline webkit-playsinline></audio>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const prankImage = document.getElementById('prankImage');
-            const prankSound = document.getElementById('prankSound');
-            const gifContainer = document.getElementById('gifContainer');
-            
-            let audioEnabled = false;
-            
-            // Загрузка файлов
-            function loadFiles() {
-                // Определяем базовый URL
-                let baseUrl = './files/';
-                if (window.location.href.includes('github.io')) {
-                    const path = window.location.href.split('/').slice(0, -1).join('/');
-                    baseUrl = path + '/files/';
-                }
-                
-                // Загружаем GIF
-                prankImage.src = baseUrl + 'prank.gif?' + Date.now();
-                
-                // Загружаем звук
-                prankSound.src = baseUrl + 'sound.mp3?' + Date.now();
-                
-                console.log('Файлы загружены');
+        let audio = null;
+        let audioLoaded = false;
+        
+        // Загружаем файлы
+        function loadFiles() {
+            // Определяем базовый URL
+            let baseUrl = './files/';
+            if (window.location.href.includes('github.io')) {
+                const path = window.location.href.split('/').slice(0, -1).join('/');
+                baseUrl = path + '/files/';
             }
             
-            // Включение звука
-            function enableAudio() {
-                if (audioEnabled) return;
-                
-                // Простая попытка воспроизвести пустой звук для разблокировки
-                const tempAudio = new Audio();
-                tempAudio.volume = 0.001;
-                
-                tempAudio.play().then(() => {
-                    audioEnabled = true;
-                    console.log('Звук активирован');
-                }).catch(e => {
-                    console.log('Требуется взаимодействие');
-                });
-                
-                tempAudio.remove();
+            // Загружаем GIF
+            document.getElementById('prankImage').src = baseUrl + 'prank.gif?' + Date.now();
+            
+            // Создаем и загружаем аудио
+            audio = new Audio();
+            audio.preload = "auto";
+            
+            audio.oncanplaythrough = function() {
+                audioLoaded = true;
+                console.log('Звук загружен');
+            };
+            
+            audio.onerror = function() {
+                console.log('Ошибка загрузки звука');
+            };
+            
+            audio.src = baseUrl + 'sound.mp3?' + Date.now();
+        }
+        
+        // Воспроизведение звука
+        function playSound() {
+            if (!audioLoaded || !audio) {
+                console.log('Звук еще не загружен');
+                return;
             }
             
-            // Воспроизведение звука
-            function playSound() {
-                // Сначала активируем звук
-                if (!audioEnabled) {
-                    enableAudio();
-                    
-                    // Пытаемся воспроизвести после небольшой задержки
-                    setTimeout(() => {
-                        if (prankSound.src && audioEnabled) {
-                            prankSound.currentTime = 0;
-                            prankSound.volume = 1.0;
-                            prankSound.play().catch(e => {
-                                console.log('Ошибка воспроизведения:', e);
-                            });
-                        }
-                    }, 300);
-                    return;
-                }
+            // Останавливаем и перематываем
+            audio.pause();
+            audio.currentTime = 0;
+            
+            // Пытаемся воспроизвести
+            audio.play().then(() => {
+                console.log('Звук воспроизводится');
+            }).catch(error => {
+                console.log('Ошибка воспроизведения:', error);
                 
-                // Если звук уже активирован, воспроизводим сразу
-                if (prankSound.src) {
-                    prankSound.currentTime = 0;
-                    prankSound.volume = 1.0;
-                    
-                    prankSound.play().catch(e => {
-                        console.log('Ошибка воспроизведения:', e);
-                    });
-                }
-            }
-            
-            // Обработчики событий для GIF
-            gifContainer.addEventListener('click', playSound);
-            gifContainer.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                playSound();
-            }, { passive: false });
-            
-            // Активируем звук при любом касании страницы
-            document.addEventListener('click', enableAudio);
-            document.addEventListener('touchstart', enableAudio, { passive: true });
-            
-            // Загружаем файлы
-            loadFiles();
-            
-            // Показываем сообщение для мобильных
-            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                document.querySelector('.tap-message').style.display = 'block';
+                // Показываем сообщение об ошибке
+                alert('Нажмите "Разрешить" если браузер запросил разрешение на звук. Затем нажмите на GIF еще раз.');
+            });
+        }
+        
+        // Загружаем файлы при старте
+        window.onload = loadFiles;
+        
+        // Также пробуем активировать звук при любом клике на странице
+        document.body.addEventListener('click', function() {
+            if (audio && audioLoaded) {
+                // Просто активируем аудио контекст
+                audio.volume = 0.01;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 1.0;
+                }).catch(() => {});
             }
         });
     </script>
