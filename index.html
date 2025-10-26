@@ -43,42 +43,42 @@
         .gif-container {
             width: 100%;
             max-width: 500px;
-            margin: 0 auto 1rem;
+            margin: 0 auto;
             border: 3px solid #8B0000;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
             background: #111;
+            cursor: pointer;
+            position: relative;
         }
         
         .gif-container img {
             width: 100%;
             height: auto;
             display: block;
+            transition: transform 0.2s;
         }
         
-        .sound-button {
-            background: #8B0000;
+        .gif-container:active img {
+            transform: scale(0.98);
+        }
+        
+        .click-hint {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(139, 0, 0, 0.8);
             color: white;
-            padding: 20px;
-            font-size: 1.5rem;
+            padding: 15px;
+            font-size: 1.3rem;
             font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            width: 100%;
-            max-width: 500px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .sound-button:active {
-            background: #600;
-            transform: scale(0.95);
         }
         
         .tap-message {
             color: #888;
-            margin-top: 10px;
+            margin-top: 15px;
             font-size: 0.9rem;
         }
 
@@ -87,9 +87,9 @@
                 font-size: 2rem;
             }
             
-            .sound-button {
-                font-size: 1.3rem;
-                padding: 18px;
+            .click-hint {
+                font-size: 1.2rem;
+                padding: 12px;
             }
         }
         
@@ -99,9 +99,9 @@
                 margin-bottom: 1.5rem;
             }
             
-            .sound-button {
-                font-size: 1.2rem;
-                padding: 16px;
+            .click-hint {
+                font-size: 1.1rem;
+                padding: 10px;
             }
             
             .tap-message {
@@ -114,15 +114,12 @@
     <div class="container">
         <h1>Wednesday</h1>
         
-        <div class="gif-container">
+        <div class="gif-container" id="gifContainer">
             <img id="prankImage" src="" alt="Wednesday GIF">
+            <div class="click-hint">▶ НАЖМИ ДЛЯ ЗВУКА</div>
         </div>
         
-        <button class="sound-button" id="soundButton">
-            🔈 НАЖМИ ДЛЯ ЗВУКА
-        </button>
-        
-        <div class="tap-message">Коснись кнопки для звука</div>
+        <div class="tap-message">Коснись GIF для звука</div>
     </div>
 
     <audio id="prankSound" preload="auto" playsinline webkit-playsinline></audio>
@@ -131,7 +128,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const prankImage = document.getElementById('prankImage');
             const prankSound = document.getElementById('prankSound');
-            const soundButton = document.getElementById('soundButton');
+            const gifContainer = document.getElementById('gifContainer');
             
             let audioEnabled = false;
             
@@ -157,13 +154,12 @@
             function enableAudio() {
                 if (audioEnabled) return;
                 
-                // Простая попытка воспроизвести пустой звук
+                // Простая попытка воспроизвести пустой звук для разблокировки
                 const tempAudio = new Audio();
-                tempAudio.volume = 0.01;
+                tempAudio.volume = 0.001;
                 
                 tempAudio.play().then(() => {
                     audioEnabled = true;
-                    soundButton.innerHTML = '🔊 НАЖМИ ДЛЯ ЗВУКА';
                     console.log('Звук активирован');
                 }).catch(e => {
                     console.log('Требуется взаимодействие');
@@ -174,28 +170,37 @@
             
             // Воспроизведение звука
             function playSound() {
+                // Сначала активируем звук
                 if (!audioEnabled) {
                     enableAudio();
+                    
+                    // Пытаемся воспроизвести после небольшой задержки
+                    setTimeout(() => {
+                        if (prankSound.src && audioEnabled) {
+                            prankSound.currentTime = 0;
+                            prankSound.volume = 1.0;
+                            prankSound.play().catch(e => {
+                                console.log('Ошибка воспроизведения:', e);
+                            });
+                        }
+                    }, 300);
                     return;
                 }
                 
+                // Если звук уже активирован, воспроизводим сразу
                 if (prankSound.src) {
                     prankSound.currentTime = 0;
                     prankSound.volume = 1.0;
                     
                     prankSound.play().catch(e => {
                         console.log('Ошибка воспроизведения:', e);
-                        soundButton.innerHTML = '❌ Нажми еще раз';
-                        setTimeout(() => {
-                            soundButton.innerHTML = '🔊 НАЖМИ ДЛЯ ЗВУКА';
-                        }, 2000);
                     });
                 }
             }
             
-            // Обработчики событий
-            soundButton.addEventListener('click', playSound);
-            soundButton.addEventListener('touchstart', function(e) {
+            // Обработчики событий для GIF
+            gifContainer.addEventListener('click', playSound);
+            gifContainer.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 playSound();
             }, { passive: false });
